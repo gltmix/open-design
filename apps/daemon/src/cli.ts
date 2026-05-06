@@ -62,6 +62,11 @@ if (first && SUBCOMMAND_MAP[first]) {
 let port = Number(process.env.OD_PORT) || 7456;
 let host = process.env.OD_BIND_HOST || '127.0.0.1';
 let open = true;
+let isMcp = first === 'mcp';
+
+if (isMcp) {
+  open = false;
+}
 
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
@@ -78,13 +83,17 @@ for (let i = 0; i < argv.length; i++) {
 }
 
 startServer({ port, host }).then(url => {
-  console.log(`[od] listening on ${url}`);
+  if (!isMcp) {
+    console.log(`[od] listening on ${url}`);
+  }
   if (open) {
-    const opener = process.platform === 'darwin' ? 'open'
-      : process.platform === 'win32' ? 'start'
-      : 'xdg-open';
     import('node:child_process').then(({ spawn }) => {
-      spawn(opener, [url], { detached: true, stdio: 'ignore' }).unref();
+      if (process.platform === 'win32') {
+        spawn('cmd', ['/c', 'start', url], { detached: true, stdio: 'ignore' }).unref();
+      } else {
+        const opener = process.platform === 'darwin' ? 'open' : 'xdg-open';
+        spawn(opener, [url], { detached: true, stdio: 'ignore' }).unref();
+      }
     });
   }
 });
